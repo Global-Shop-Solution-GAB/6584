@@ -1,0 +1,63 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sError.Declare(String)
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Author: Arturo Almaguer
+'Date: 13 January 2022
+'Customer: Metro Steel & Pipe Supply Inc
+'This program checks the 'Credit Hold' option for a new customer when the user creating the customer is part of Sales group, so they can review it internally.
+'This script is launched off 14384 pre save hook.
+
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+
+F.Intrinsic.Control.Try
+	
+	V.Local.sReturn.Declare(String)
+	V.Local.bReturn.Declare(Boolean)
+	V.Local.bFlag.Declare(Boolean)
+	
+	'Validating if program is active by getting value from maintenance menu
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.ODBC.Connection!Con.ExecuteAndReturn("select PROGRAM_ON from GCG_6584_MM", V.Local.bFlag)
+	F.ODBC.Connection!Con.Close
+	
+	'Program should work only when it has been activated by admin user
+	F.Intrinsic.Control.If(V.Local.bFlag, =, True)
+	
+		'Program works only for new customers
+		F.Intrinsic.Control.If(V.Caller.Switches, =, "N")
+		
+			'Getting Sales group members to verify if user is part of the group, INSIDE group according to customer
+			Function.Global.Security.GetGroupMembers("INSIDE", V.Caller.CompanyCode, V.Local.sReturn)
+			F.Intrinsic.String.IsInString(V.Local.sReturn, V.Caller.User, True, V.Local.bReturn)
+			
+			F.Intrinsic.Control.If(V.Local.bReturn, =, True)
+		
+				'Checking 'Credit Hold' option since the user is part of Sales group
+				V.Passed.000037.Set("Y")
+			
+			F.Intrinsic.Control.EndIf
+				
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+Program.Sub.CatchError.Start
+'To display the error
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}", V.Ambient.ScriptPath, V.Ambient.Newline, V.Ambient.SubroutineCalledFrom, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Ambient.GABVersion, V.Global.sError) 
+F.Intrinsic.UI.Msgbox(V.Global.sError)
+F.Intrinsic.Control.End()
+Program.Sub.CatchError.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$apadilla$}$20220113164658129$}$Lag9STqBJOmNXSbd5+msRcBWPGz0aFqSzPePUG9qWbyS+oKqq605pjbYNhR9inc9LCkTSoeFPJc8gXMw/7qEkA==
+Program.Sub.Comments.End
