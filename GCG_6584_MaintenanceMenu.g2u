@@ -1,0 +1,148 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.Form..Create(BaseForm)
+Gui.Form..Caption("Credit Hold MM")
+Gui.Form..Size(255,124)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..AlwaysOnTop(False)
+Gui.Form..FontName("Tahoma")
+Gui.Form..FontSize(8.25)
+Gui.Form..ControlBox(True)
+Gui.Form..MaxButton(True)
+Gui.Form..MinButton(True)
+Gui.Form..MousePointer(0)
+Gui.Form..Moveable(True)
+Gui.Form..Sizeable(True)
+Gui.Form..ShowInTaskBar(True)
+Gui.Form..TitleBar(True)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.lbl1.Create(Label,"Activate/Deactivate custom program:",True,216,13,0,16,16,True,0,"Tahoma",8.25,,0,0)
+Gui.Form.lbl1.BorderStyle(0)
+Gui.Form.lbl1.FontStyle(True,False,False,False,False)
+Gui.Form.chkProgram.Create(CheckBox)
+Gui.Form.chkProgram.Enabled(True)
+Gui.Form.chkProgram.Visible(True)
+Gui.Form.chkProgram.Zorder(0)
+Gui.Form.chkProgram.Size(135,20)
+Gui.Form.chkProgram.Position(16,46)
+Gui.Form.chkProgram.Caption("ARC 6584 Credit Hold")
+Gui.Form.chkProgram.FontName("Tahoma")
+Gui.Form.chkProgram.FontSize(8.25)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Enabled(True)
+Gui.Form.cmdSave.Visible(True)
+Gui.Form.cmdSave.Zorder(0)
+Gui.Form.cmdSave.Size(58,23)
+Gui.Form.cmdSave.Position(182,44)
+Gui.Form.cmdSave.Caption("")
+Gui.Form.cmdSave.FontName("Tahoma")
+Gui.Form.cmdSave.FontSize(8.25)
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Gui.Form.cmdSave.SvgPicture("icon_save_all_color")
+Gui.Form.cmdSave.ImageAlign(8)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sError.Declare(String)
+
+Program.Sub.Preflight.End
+Program.Sub.Main.Start
+'Author: Arturo Almaguer
+'Date: 13 January 2022
+'Customer: Metro Steel & Pipe Supply Inc
+'This program is the maintenance menu for ARC ID 6584 under AR - File - Credit Hold Maintenance [6584]
+
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+
+F.Intrinsic.Control.Try
+
+	F.Intrinsic.Control.CallSub(CheckTable)
+	F.Intrinsic.Control.CallSub(LoadData)
+	
+	GUI.Form..Show
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+Program.Sub.CheckTable.Start
+'This subroutine verifies if tables exists in DB, creates it if it doesn't
+F.Intrinsic.Control.Try
+
+	V.Local.bExists.Declare(Boolean)
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.ODBC.Connection!Con.TableExists("GCG_6584_MM", V.Local.bExists)
+		F.Intrinsic.Control.If(V.Local.bExists, =, False)
+			F.ODBC.Connection!Con.Execute("CREATE TABLE GCG_6584_MM (PROGRAM_ON BIT);")
+			F.ODBC.Connection!Con.Execute("insert into GCG_6584_MM(PROGRAM_ON) values(0);")
+		F.Intrinsic.Control.EndIf
+	F.ODBC.Connection!Con.Close
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.CheckTable.End
+Program.Sub.LoadData.Start
+'This subroutine loads the data 
+F.Intrinsic.Control.Try
+	
+	V.Local.bReturn.Declare(Boolean)
+	
+	'Getting data stored in custom table
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.ODBC.Connection!Con.ExecuteAndReturn("select PROGRAM_ON from GCG_6584_MM", V.Local.bReturn)
+	F.ODBC.Connection!Con.Close
+	
+	'Passing value to checkbox on screen
+	GUI.Form.chkProgram.Value(V.Local.bReturn)
+	
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadData.End
+Program.Sub.Form_UnLoad.Start
+'Closes the connection if it is open
+f.Intrinsic.Control.If(v.ODBC.con.exists,=,"1") 	
+    f.ODBC.Connection!Con.Close
+f.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.End()
+Program.Sub.Form_UnLoad.End
+Program.Sub.CatchError.Start
+'To display the error
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}", V.Ambient.ScriptPath, V.Ambient.Newline, V.Ambient.SubroutineCalledFrom, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Ambient.GABVersion, V.Global.sError) 
+F.Intrinsic.UI.Msgbox(V.Global.sError)
+F.Intrinsic.Control.CallSub("Form_UnLoad")
+Program.Sub.CatchError.End
+Program.Sub.cmdSave_Click.Start
+'This subroutine saves the data in the custom table after the user clicks on the Save button
+F.Intrinsic.Control.Try
+
+	V.Local.sSQL.Declare(String)
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	F.Intrinsic.String.Build("update GCG_6584_MM set PROGRAM_ON = '{0}';", V.Screen.Form!chkProgram.Value, V.Local.sSQL)
+	F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.UI.Msgbox("Value has been saved.")
+	
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$apadilla$}$20220113163558359$}$Lag9STqBJOmNXSbd5+msRcBWPGz0aFqSzPePUG9qWbyS+oKqq605prJha+9KNtvN6xAo4Rj+9qEDooOZj+O6cg==
+Program.Sub.Comments.End
